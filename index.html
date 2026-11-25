@@ -87,6 +87,10 @@ td.oz{color:var(--muted)}
 .btn.gold{background:linear-gradient(180deg,#ffc93a,#f0a800);color:#111}
 .btn.ghost{background:var(--card);color:var(--text);border:1px solid var(--line)}
 .btn svg{width:18px;height:18px;flex:none}
+.top-cta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}
+.top-cta .btn{padding:10px 8px;font-size:13.5px;border-radius:10px}
+.top-cta .btn svg{width:16px;height:16px}
+.share-bottom{margin-top:14px}
 .hidden{display:none!important}
 @media (max-width:430px){.tab svg{display:none}.tab{font-size:13px}table{font-size:12px}th,td{padding:9px 4px}}
 @media (max-width:380px){.big{font-size:30px}.grid.three{grid-template-columns:1fr 1fr}.brand h1{font-size:15px}}
@@ -97,6 +101,11 @@ td.oz{color:var(--muted)}
   <div class="brand">
     <h1>Калькулятор <span>XAUUSD</span></h1>
     <button class="price-chip" id="price-chip" title="Обновить цену"><span class="dot"></span><span id="price-text">XAU/USD …</span></button>
+  </div>
+
+  <div class="top-cta">
+    <button class="btn gold" id="btn-account" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Открыть счёт</button>
+    <button class="btn ghost" id="btn-channel" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.8 15.6 9.6 19c.4 0 .6-.2.8-.4l2-1.9 4.1 3c.8.4 1.3.2 1.5-.7l2.7-12.6c.3-1.1-.4-1.6-1.1-1.3L3.9 10.9c-1.1.4-1.1 1-.2 1.3l4 1.3 9.4-5.9c.4-.3.8-.1.5.2z"/></svg>Наш канал</button>
   </div>
 
   <div class="panel">
@@ -144,7 +153,7 @@ td.oz{color:var(--muted)}
           </div>
           <div class="note" id="l-note"></div>
           <div class="offer" id="l-offer"><p id="l-offer-text"></p>
-            <div class="actions two" data-actions="lot"></div></div>
+            <div class="actions" data-actions="lot"></div></div>
         </div>
       </section>
 
@@ -193,7 +202,7 @@ td.oz{color:var(--muted)}
             <div class="box"><div class="cap">Риск / прибыль</div><div class="val" id="p-rr">—</div></div>
           </div>
           <div class="offer" id="p-offer"><p id="p-offer-text"></p>
-            <div class="actions two" data-actions="pos"></div></div>
+            <div class="actions" data-actions="pos"></div></div>
         </div>
       </section>
 
@@ -224,7 +233,7 @@ td.oz{color:var(--muted)}
             <div class="box"><div class="cap">Движение на $10</div><div class="val green" id="m-move10">—</div></div>
           </div>
           <div class="offer" id="m-offer"><p id="m-offer-text"></p>
-            <div class="actions two" data-actions="margin"></div></div>
+            <div class="actions" data-actions="margin"></div></div>
         </div>
       </section>
 
@@ -251,7 +260,6 @@ td.oz{color:var(--muted)}
             <thead><tr><th>Размер лота</th><th>Движение на $0.10</th><th>Движение на $1.00</th><th>Унции</th></tr></thead>
             <tbody id="ref"></tbody>
           </table>
-          <div class="actions" data-actions="pip" style="margin-top:14px"></div>
         </div>
       </section>
 
@@ -259,13 +267,8 @@ td.oz{color:var(--muted)}
     </div>
   </div>
 
-  <div class="cta">
-    <button class="btn gold" id="btn-account-bottom">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
-      Открыть счёт</button>
-    <button class="btn ghost" id="btn-channel">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.8 15.6 9.6 19c.4 0 .6-.2.8-.4l2-1.9 4.1 3c.8.4 1.3.2 1.5-.7l2.7-12.6c.3-1.1-.4-1.6-1.1-1.3L3.9 10.9c-1.1.4-1.1 1-.2 1.3l4 1.3 9.4-5.9c.4-.3.8-.1.5.2z"/></svg>
-      Наш Telegram-канал</button>
+  <div class="share-bottom" id="share-bottom">
+    <button class="btn gold" id="btn-share" type="button" style="width:100%"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="m16 6-4-4-4 4"/><path d="M12 2v13"/></svg><span id="btn-share-text">Поделиться позицией</span></button>
   </div>
 </div>
 
@@ -274,8 +277,8 @@ td.oz{color:var(--muted)}
 const REF_LINK     = "https://direct.group-fxpro.global/ru/partner/uyrLYKbo";
 const CHANNEL_LINK = "https://t.me/+sdNSmdt8qmphYzgy";
 // Прямая ссылка на это приложение, например "https://t.me/MyGoldCalcBot/calc"
-// (создаётся в @BotFather командой /newapp). Нужна для кнопки «Поделиться».
-// Пока пусто — кнопка «Поделиться» скрыта.
+// (создаётся в @BotFather командой /newapp). Добавляется в конец сводки «Поделиться».
+// Пока пусто — в сводку подставляется адрес сайта.
 const APP_LINK     = "";
 /* ===================================================== */
 
@@ -399,7 +402,16 @@ function calcLot() {
   const lev = leverage();
   const margin = livePrice && lev ? lot * OZ * livePrice / lev : null;
   offer("l", margin, lot * OZ * sl, bal);
-  share.lot = `XAUUSD — размер лота\nБаланс ${money(bal)}, риск ${fmt(pct, pct % 1 ? 2 : 0)}%, стоп ${money(sl)} (${int(sl * 10)} пипсов)\n➡️ Лот: ${lot.toFixed(2)} · риск ${money(lot * OZ * sl)}`;
+  share.lot = [
+    "📊 XAUUSD · Размер лота", LINE,
+    `💼 Баланс: ${money(bal)}`,
+    `⚠️ Риск: ${fmt(pct, pct % 1 ? 2 : 0)}% (${money(riskUsd)})`,
+    `🛑 Стоп: ${money(sl)} · ${int(sl * 10)} пипсов`, LINE,
+    `📦 Лот: ${lot.toFixed(2)}`,
+    `💸 Риск при этом лоте: ${money(lot * OZ * sl)}`,
+    `📈 Движение на $1: ${money(lot * OZ)}`,
+    ...(margin != null ? [`🏦 Маржа (1:${int(lev)}): ${money(margin)}`] : []),
+  ].join("\n");
 }
 
 /* ---------- Калькулятор: размер позиции ---------- */
@@ -459,18 +471,28 @@ function calcPos() {
   $("p-lot").textContent = lot.toFixed(2);
   $("p-real").textContent = money(realRisk);
   $("p-move").textContent = money(lot * OZ);
-  let tpLine = "";
+  let tpLines = [], tpRes = [];
   if (!bad(tp) && tp !== null) {
     const tpDist = Math.abs(tp - entry), profit = lot * OZ * tpDist, rr = tpDist / dist;
     $("p-profit").textContent = money(profit);
     $("p-tp-pips").textContent = `${int(tpDist * 10)} пипсов`;
     $("p-rr").textContent = "1 : " + fmt(rr);
     $("p-rr").className = "val " + (rr >= 1.5 ? "green" : rr < 1 ? "red" : "");
-    tpLine = `\nТейк ${fmt(tp)} → прибыль ${money(profit)}, R:R 1:${fmt(rr)}`;
+    tpLines = [`✅ Тейк: ${fmt(tp)} · ${int(tpDist * 10)} пипсов`];
+    tpRes = [`💰 Прибыль по тейку: ${money(profit)}`, `⚖️ Риск/прибыль: 1 : ${fmt(rr)}`];
   } else { $("p-profit").textContent = "—"; $("p-rr").textContent = "—"; $("p-rr").className = "val"; $("p-tp-pips").textContent = ""; }
-  const lev = leverage();
-  offer("p", lev ? lot * OZ * entry / lev : null, realRisk, bad(bal) ? null : bal);
-  share.pos = `XAUUSD ${isBuy ? "LONG ▲" : "SHORT ▼"}\nВход ${fmt(entry)}, стоп ${fmt(sl)} (${int(dist * 10)} пипсов)${tpLine}\n➡️ Лот: ${lot.toFixed(2)} · риск ${money(realRisk)}`;
+  const lev = leverage(), pMargin = lev ? lot * OZ * entry / lev : null;
+  offer("p", pMargin, realRisk, bad(bal) ? null : bal);
+  share.pos = [
+    `${isBuy ? "🟢" : "🔴"} XAUUSD · ${isBuy ? "LONG ▲ (покупка)" : "SHORT ▼ (продажа)"}`, LINE,
+    `🎯 Вход: ${fmt(entry)}`,
+    `🛑 Стоп: ${fmt(sl)} · ${int(dist * 10)} пипсов`,
+    ...tpLines, LINE,
+    `📦 Лот: ${lot.toFixed(2)}`,
+    `💸 Риск: ${money(realRisk)}${bad(bal) ? "" : ` (${fmt(realRisk / bal * 100)}% от баланса)`}`,
+    ...tpRes,
+    ...(pMargin != null ? [`🏦 Маржа (1:${int(lev)}): ${money(pMargin)}`] : []),
+  ].join("\n");
 }
 
 /* ---------- Калькулятор: маржа ---------- */
@@ -492,7 +514,11 @@ function calcMargin() {
   $("m-pip").textContent = money(lot * OZ * 0.10);
   $("m-move10").textContent = money(lot * OZ * 10);
   offer("m", margin, 0, null);
-  share.margin = `XAUUSD — маржа\nЛот ${fmt(lot)}, цена ${money(price)}, плечо 1:${int(lev)}\n➡️ Маржа: ${money(margin)}`;
+  share.margin = [
+    "📊 XAUUSD · Маржа", LINE,
+    `📦 Лот: ${fmt(lot)}`, `💲 Цена: ${fmt(price)}`, `⚙️ Плечо: 1:${int(lev)}`, LINE,
+    `🏦 Маржа: ${money(margin)}`, `📈 Объём сделки: $${int(notional)}`, `🔹 1 пипс: ${money(lot * OZ * 0.10)}`,
+  ].join("\n");
 }
 
 /* ---------- Калькулятор: стоимость пипса ---------- */
@@ -512,50 +538,79 @@ function calcPip() {
   $("v-pip").textContent = money(oz * 0.10);
   $("v-pt").textContent = money(oz * 0.01);
   $("v-oz").textContent = oz.toLocaleString("en-US", { maximumFractionDigits: 2 }) + " oz";
-  share.pip = `XAUUSD — лот ${fmt(lot)}\n1 пипс ($0.10) = ${money(oz * 0.10)}, движение на $1 = ${money(oz)}`;
+  share.pip = [
+    `📊 XAUUSD · Стоимость пипса (лот ${fmt(lot)})`, LINE,
+    `🔹 1 пипс ($0.10): ${money(oz * 0.10)}`, `🔸 1 пункт ($0.01): ${money(oz * 0.01)}`, `📈 Движение на $1: ${money(oz)}`,
+  ].join("\n");
 }
 $("ref").innerHTML = [[0.01, "0.01 (Micro)"], [0.10, "0.10 (Mini)"], [1, "1.00 (Standard)"], [10, "10.00"]]
   .map(([l, name]) => `<tr><td>${name}</td><td class="mono">${money(l * 10)}</td><td class="mono">${money(l * 100)}</td><td class="oz">${int(l * 100)} oz</td></tr>`).join("");
 
-/* ---------- Кнопки «Открыть счёт» / «Поделиться» внутри результатов ---------- */
+/* ---------- Кнопки «Открыть счёт» в блоках с депозитом ---------- */
+const LINE = "━━━━━━━━━━━━━━";
 const share = { lot: null, pos: null, margin: null, pip: null };
 document.querySelectorAll("[data-actions]").forEach(box => {
-  const where = box.dataset.actions;
-  if (where !== "pip") {
-    const a = document.createElement("button");
-    a.className = "btn gold"; a.type = "button"; a.textContent = "Открыть счёт";
-    a.addEventListener("click", () => openAccount("result-" + where));
-    box.appendChild(a);
-  }
-  const s = document.createElement("button");
-  s.className = "btn ghost share-btn"; s.type = "button"; s.textContent = "Поделиться";
-  s.addEventListener("click", () => doShare(where));
-  box.appendChild(s);
-  if (!APP_LINK) { s.classList.add("hidden"); if (where !== "pip") box.classList.remove("two"); }
+  const a = document.createElement("button");
+  a.className = "btn gold"; a.type = "button"; a.textContent = "Открыть счёт";
+  a.addEventListener("click", openAccount);
+  box.appendChild(a);
 });
-function doShare(where) {
-  const text = share[where];
-  if (!text || !APP_LINK) { haptic("error"); return; }
-  const url = "https://t.me/share/url?url=" + encodeURIComponent(APP_LINK) + "&text=" + encodeURIComponent(text + "\n\nПосчитано в калькуляторе XAUUSD:");
-  if (inTelegram) tg.openTelegramLink(url); else window.open(url, "_blank");
-}
-function openAccount(where) {
+function openAccount() {
   if (inTelegram) tg.openLink(REF_LINK); else window.open(REF_LINK, "_blank");
 }
 function openChannel() {
   if (inTelegram) tg.openTelegramLink(CHANNEL_LINK); else window.open(CHANNEL_LINK, "_blank");
 }
-$("btn-account-bottom").addEventListener("click", () => openAccount("bottom"));
+$("btn-account").addEventListener("click", openAccount);
 $("btn-channel").addEventListener("click", openChannel);
 
-// Нижняя кнопка Telegram — всегда на виду
-if (inTelegram && tg.MainButton) {
-  try {
-    tg.MainButton.setParams({ text: "💼 Открыть счёт", color: "#f5b70a", text_color: "#111111", is_visible: true, is_active: true });
-    tg.MainButton.onClick(() => openAccount("main-button"));
-    $("btn-account-bottom").classList.add("hidden");
-  } catch (e) {}
+/* ---------- «Поделиться»: красивая сводка в любой чат ---------- */
+function shareLabel() { return activeTab === "pos" ? "Поделиться позицией" : "Поделиться расчётом"; }
+function doShare() {
+  const text = share[activeTab];
+  if (!text) { haptic("error"); return; }
+  const link = APP_LINK || (location.origin + location.pathname);
+  const url = "https://t.me/share/url?url=" + encodeURIComponent(text) +
+    "&text=" + encodeURIComponent("\n🧮 Калькулятор XAUUSD: " + link);
+  haptic();
+  if (inTelegram) tg.openTelegramLink(url); else window.open(url, "_blank");
 }
+const useMain = !!(inTelegram && tg.MainButton);
+if (useMain) {
+  try { tg.MainButton.onClick(doShare); $("share-bottom").classList.add("hidden"); } catch (e) {}
+} else $("btn-share").addEventListener("click", doShare);
+function updateShareButton() {
+  const ok = !!share[activeTab];
+  if (useMain) {
+    try {
+      tg.MainButton.setParams({ text: "📤 " + shareLabel(), color: ok ? "#f5b70a" : "#2a313d", text_color: ok ? "#111111" : "#8b95a5", is_visible: true, is_active: ok });
+    } catch (e) {}
+  } else {
+    $("btn-share-text").textContent = shareLabel();
+    $("btn-share").disabled = !ok; $("btn-share").style.opacity = ok ? "1" : ".45";
+  }
+}
+
+/* ---------- Клавиатура на телефоне ----------
+   Enter/«Далее» — переход к следующему полю, на последнем — скрыть клавиатуру.
+   Тап в любом месте вне поля — скрыть клавиатуру. */
+function visibleInputs() { return [...document.querySelectorAll(".view.active input")]; }
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter" || e.target.tagName !== "INPUT") return;
+  e.preventDefault();
+  const list = visibleInputs(), k = list.indexOf(e.target);
+  if (k >= 0 && k < list.length - 1) list[k + 1].focus(); else e.target.blur();
+});
+function hideKeyboard(e) {
+  const a = document.activeElement;
+  if (a && a.tagName === "INPUT" && !(e.target.closest && e.target.closest("input"))) a.blur();
+}
+document.addEventListener("touchstart", hideKeyboard, { passive: true });
+document.addEventListener("mousedown", hideKeyboard);
+document.querySelectorAll(".view").forEach(v => {
+  const ins = v.querySelectorAll("input");
+  ins.forEach((el, k) => el.setAttribute("enterkeyhint", k === ins.length - 1 ? "done" : "next"));
+});
 
 /* ---------- Вкладки ---------- */
 let activeTab = "lot";
@@ -564,6 +619,7 @@ function showTab(name, user) {
   activeTab = name;
   document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x.dataset.view === name));
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + name));
+  updateShareButton();
   if (user) { haptic(); save(); }
 }
 document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => showTab(t.dataset.view, true)));
@@ -628,7 +684,7 @@ $("p-entry-now").addEventListener("click", () => { if (livePrice) { $("p-entry")
 $("m-price-now").addEventListener("click", () => { if (livePrice) { $("m-price").value = livePrice.toFixed(2); mPriceTouched = false; onInput(); haptic(); } else fetchPrice(); });
 
 /* ---------- Запуск ---------- */
-function recalc() { calcLot(); calcPos(); calcMargin(); calcPip(); }
+function recalc() { calcLot(); calcPos(); calcMargin(); calcPip(); updateShareButton(); }
 function onInput() { recalc(); save(); }
 FIELDS.forEach(i => $(i).addEventListener("input", onInput));
 
