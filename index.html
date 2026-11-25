@@ -272,9 +272,6 @@ const CHANNEL_LINK = "https://t.me/+sdNSmdt8qmphYzgy";
 // (создаётся в @BotFather командой /newapp). Нужна для кнопки «Поделиться».
 // Пока пусто — кнопка «Поделиться» скрыта.
 const APP_LINK     = "";
-// Код счётчика GoatCounter (бесплатно, goatcounter.com), например "mygoldcalc".
-// Пока пусто — статистика приложения не собирается.
-const GOATCOUNTER  = "";
 /* ===================================================== */
 
 const OZ = 100;                 // унций в 1 лоте
@@ -292,16 +289,6 @@ if (tg) {
 const $ = id => document.getElementById(id);
 const haptic = (t) => { try { if (inTelegram) t ? tg.HapticFeedback.notificationOccurred(t) : tg.HapticFeedback.selectionChanged(); } catch (e) {} };
 
-/* ---------- Аналитика (GoatCounter, необязательно) ---------- */
-function track(name) {
-  try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: name, title: name, event: true }); } catch (e) {}
-}
-if (GOATCOUNTER) {
-  const s = document.createElement("script");
-  s.async = true; s.src = "https://gc.zgo.at/count.js";
-  s.dataset.goatcounter = `https://${GOATCOUNTER}.goatcounter.com/count`;
-  document.head.appendChild(s);
-}
 
 /* ---------- Разбор чисел ----------
    Понимает: 10000, 10 000, 10,000, 10.000,50, 3547.60, 3547,60, 0,5.
@@ -529,15 +516,12 @@ function doShare(where) {
   const text = share[where];
   if (!text || !APP_LINK) { haptic("error"); return; }
   const url = "https://t.me/share/url?url=" + encodeURIComponent(APP_LINK) + "&text=" + encodeURIComponent(text + "\n\nПосчитано в калькуляторе XAUUSD:");
-  track("share-" + where);
   if (inTelegram) tg.openTelegramLink(url); else window.open(url, "_blank");
 }
 function openAccount(where) {
-  track("click-account-" + where);
   if (inTelegram) tg.openLink(REF_LINK); else window.open(REF_LINK, "_blank");
 }
 function openChannel() {
-  track("click-channel");
   if (inTelegram) tg.openTelegramLink(CHANNEL_LINK); else window.open(CHANNEL_LINK, "_blank");
 }
 $("btn-account-bottom").addEventListener("click", () => openAccount("bottom"));
@@ -559,7 +543,7 @@ function showTab(name, user) {
   activeTab = name;
   document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x.dataset.view === name));
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + name));
-  if (user) { haptic(); track("tab-" + name); save(); }
+  if (user) { haptic(); save(); }
 }
 document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => showTab(t.dataset.view, true)));
 
@@ -618,7 +602,7 @@ async function fetchPrice() {
 }
 let mPriceTouched = false;
 $("m-price").addEventListener("input", () => { mPriceTouched = true; });
-$("price-chip").addEventListener("click", () => { fetchPrice(); haptic(); track("price-refresh"); });
+$("price-chip").addEventListener("click", () => { fetchPrice(); haptic(); });
 $("p-entry-now").addEventListener("click", () => { if (livePrice) { $("p-entry").value = livePrice.toFixed(2); onInput(); haptic(); } else fetchPrice(); });
 $("m-price-now").addEventListener("click", () => { if (livePrice) { $("m-price").value = livePrice.toFixed(2); mPriceTouched = false; onInput(); haptic(); } else fetchPrice(); });
 
@@ -632,7 +616,6 @@ load(saved => {
   FIELDS.forEach(i => { const el = $(i); if (!el.value && el.dataset.def) el.value = el.dataset.def; });
   // Вкладка: из ссылки t.me/BOT/app?startapp=pos, из #pos в адресе, иначе последняя открытая
   const start = (inTelegram && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || location.hash.slice(1);
-  if (start) track("start-" + start);
   const tab = ["lot", "pos", "margin", "pip"].includes(start) ? start : (o && o.tab) || "lot";
   showTab(tab, false);
   recalc();
