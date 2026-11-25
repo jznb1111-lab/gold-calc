@@ -51,7 +51,7 @@ WEBAPP_URL = os.getenv("WEBAPP_URL", "").strip()
 ADMIN_IDS = {int(x) for x in re.findall(r"\d+", os.getenv("ADMIN_IDS", ""))}
 DB_PATH = Path(os.getenv("DB_PATH") or Path(__file__).with_name("users.db"))
 
-REF_LINK = "https://www.group-fxpro.global/?ib=uyrLYKbo"
+REF_LINK = "https://direct.group-fxpro.global/partner/uyrLYKbo?lang=ru"
 CHANNEL_LINK = "https://t.me/+sdNSmdt8qmphYzgy"
 
 WELCOME = (
