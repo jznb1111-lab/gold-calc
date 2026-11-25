@@ -76,6 +76,7 @@ def db() -> sqlite3.Connection:
 
 
 def db_init() -> None:
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with closing(db()) as c, c:
         c.execute("""
             CREATE TABLE IF NOT EXISTS users (
