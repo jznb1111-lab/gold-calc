@@ -277,9 +277,10 @@ td.oz{color:var(--muted)}
 const REF_LINK     = "https://direct.group-fxpro.global/ru/partner/uyrLYKbo";
 const CHANNEL_LINK = "https://t.me/+sdNSmdt8qmphYzgy";
 // Прямая ссылка на это приложение, например "https://t.me/MyGoldCalcBot/calc"
-// (создаётся в @BotFather командой /newapp). Добавляется в конец сводки «Поделиться».
-// Пока пусто — в сводку подставляется адрес сайта.
+// (создаётся в @BotFather командой /newapp). Используется в сводке, только если BOT_USERNAME пустой.
 const APP_LINK     = "";
+// Никнейм бота — подписывается в конце сводки «Поделиться»
+const BOT_USERNAME = "Lotcalcubot";
 /* ===================================================== */
 
 const OZ = 100;                 // унций в 1 лоте
@@ -569,7 +570,7 @@ function shareLabel() { return activeTab === "pos" ? "Поделиться по�
 function doShare() {
   const text = share[activeTab];
   if (!text) { haptic("error"); return; }
-  const link = APP_LINK || (location.origin + location.pathname);
+  const link = BOT_USERNAME ? "@" + BOT_USERNAME.replace(/^@/, "") : (APP_LINK || location.origin + location.pathname);
   const url = "https://t.me/share/url?url=" + encodeURIComponent(text) +
     "&text=" + encodeURIComponent("\n🧮 Калькулятор XAUUSD: " + link);
   haptic();
