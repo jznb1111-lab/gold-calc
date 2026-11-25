@@ -143,6 +143,11 @@ td.oz{color:var(--muted)}
         <div class="err" id="l-sl-err"></div>
         <div class="hint"><b id="l-sl-hint">= 50 пипсов · 500 пунктов.</b> Это разница между ценой входа и стопом. Например, вход 4,150.00 и стоп 4,145.00 = $5.00.</div>
 
+        <div class="lbl"><label for="l-lev">Кредитное плечо счёта 1:</label></div>
+        <input id="l-lev" inputmode="numeric" autocomplete="off" data-k="dec" data-def="100">
+        <div class="err" id="l-lev-err"></div>
+        <div class="presets lev-presets"></div>
+
         <div class="result">
           <div class="cap">Рекомендуемый размер лота</div>
           <div class="big" id="l-lot">—</div>
@@ -150,6 +155,10 @@ td.oz{color:var(--muted)}
           <div class="grid">
             <div class="box"><div class="cap">Риск при этом объёме</div><div class="val" id="l-real">—</div></div>
             <div class="box"><div class="cap">Стоимость движения на $1</div><div class="val" id="l-move">—</div></div>
+          </div>
+          <div class="grid">
+            <div class="box"><div class="cap">Нужная маржа</div><div class="val" id="l-margin">—</div><div class="sub" id="l-margin-sub"></div></div>
+            <div class="box"><div class="cap">Макс. лот по балансу</div><div class="val" id="l-maxlot">—</div><div class="sub">маржа + убыток по стопу</div></div>
           </div>
           <div class="note" id="l-note"></div>
           <div class="offer" id="l-offer"><p id="l-offer-text"></p>
@@ -184,6 +193,11 @@ td.oz{color:var(--muted)}
         <input id="p-tp" inputmode="decimal" autocomplete="off" data-k="money">
         <div class="err" id="p-tp-err"></div>
 
+        <div class="lbl"><label for="p-lev">Кредитное плечо счёта 1:</label></div>
+        <input id="p-lev" inputmode="numeric" autocomplete="off" data-k="dec" data-def="100">
+        <div class="err" id="p-lev-err"></div>
+        <div class="presets lev-presets"></div>
+
         <div class="result">
           <div class="cap">Размер позиции</div>
           <div class="big" id="p-lot">—</div>
@@ -191,6 +205,10 @@ td.oz{color:var(--muted)}
           <div class="grid">
             <div class="box"><div class="cap">Риск при этом объёме</div><div class="val" id="p-real">—</div></div>
             <div class="box"><div class="cap">Стоимость движения на $1</div><div class="val" id="p-move">—</div></div>
+          </div>
+          <div class="grid">
+            <div class="box"><div class="cap">Нужная маржа</div><div class="val" id="p-margin">—</div><div class="sub" id="p-margin-sub"></div></div>
+            <div class="box"><div class="cap">Макс. лот по балансу</div><div class="val" id="p-maxlot">—</div><div class="sub">маржа + убыток по стопу</div></div>
           </div>
           <div class="note" id="p-note"></div>
           <div class="grid">
@@ -220,7 +238,7 @@ td.oz{color:var(--muted)}
         <div class="lbl"><label for="m-lev">Кредитное плечо 1:</label></div>
         <input id="m-lev" inputmode="numeric" autocomplete="off" data-k="dec" data-def="100">
         <div class="err" id="m-lev-err"></div>
-        <div class="presets" id="lev-presets"></div>
+        <div class="presets lev-presets"></div>
         <div class="hint">Плечо задаётся один раз и используется во всех вкладках. Точное значение для золота уточняйте у брокера.</div>
 
         <div class="result">
@@ -363,6 +381,20 @@ const bad = v => v === null || isNaN(v);
 /* ---------- Состояние: цена, плечо ---------- */
 let livePrice = null, priceTime = null;
 function leverage() { const r = read("m-lev"); return r.v > 0 ? r.v : null; }
+// Плечо одно на все вкладки: правка в любом поле копируется в остальные
+const LEV_IDS = ["l-lev", "p-lev", "m-lev"];
+function syncLev(from) { const v = $(from).value; LEV_IDS.forEach(i => { if (i !== from) { $(i).value = v; setErr(i, ""); } }); }
+const needLev = id => need(id, { optional: true, max: 10000, maxMsg: "Слишком большое плечо" });
+// Максимальный лот, при котором маржа + убыток по стопу укладываются в баланс
+const maxLotFor = (bal, price, lev, dist) => floorLot(bal / (OZ * price / lev + OZ * dist));
+// Блок «Нужная маржа / Макс. лот»
+function showMargin(px, lot, price, lev, maxLot, why) {
+  const ok = lev && price && lot > 0;
+  $(px + "-margin").textContent = ok ? money(lot * OZ * price / lev) : "—";
+  $(px + "-margin-sub").textContent = ok ? `при плече 1:${Math.round(lev)}` : (why || "");
+  $(px + "-maxlot").textContent = maxLot != null ? Math.max(maxLot, 0).toFixed(2) : "—";
+}
+function clearMargin(px) { showMargin(px, 0, null, null, null, ""); }
 
 /* ---------- Блок «нужен депозит» + кнопки ---------- */
 function offer(prefix, margin, risk, balance) {
@@ -372,7 +404,7 @@ function offer(prefix, margin, risk, balance) {
     t.innerHTML = "Торгуйте золотом у надёжного брокера. Открытие счёта занимает несколько минут.";
   } else {
     const dep = ceilMoney(margin + (risk || 0));
-    let html = `Маржа при плече 1:${int(lev)} — <b>${money(margin)}</b>.`;
+    let html = `Маржа при плече 1:${Math.round(lev)} — <b>${money(margin)}</b>.`;
     if (risk) html += ` Вместе с риском по стопу для этой сделки нужен депозит от <b>${money(dep)}</b>.`;
     else html += ` Для этой сделки нужен депозит от <b>${money(dep)}</b>.`;
     if (balance != null && balance < dep) html += ` <span style="color:var(--red)">Текущего баланса не хватает.</span>`;
@@ -388,30 +420,46 @@ function calcLot() {
   const bal = need("l-bal"), pct = need("l-risk", { max: 100, maxMsg: "Не больше 100%" }), sl = need("l-sl");
   $("l-sl-hint").textContent = bad(sl) ? "" : `= ${int(sl * 10)} пипсов · ${int(sl * 100)} пунктов.`;
   const out = ["l-lot", "l-real", "l-move"];
-  if (bad(bal) || bad(pct) || bad(sl)) { out.forEach(i => $(i).textContent = "—"); $("l-note").textContent = ""; hideOffer("l"); share.lot = null; return; }
+  const lev = needLev("l-lev");
+  if (bad(bal) || bad(pct) || bad(sl) || isNaN(lev)) { out.forEach(i => $(i).textContent = "—"); $("l-note").textContent = ""; clearMargin("l"); hideOffer("l"); share.lot = null; return; }
   const riskUsd = bal * pct / 100;
-  const lot = floorLot(riskUsd / (sl * OZ));
+  const riskLot = floorLot(riskUsd / (sl * OZ));
+  const price = livePrice || read("m-price").v || null;
+  const maxLot = lev && price ? maxLotFor(bal, price, lev, sl) : null;
+  const capped = maxLot != null && riskLot > maxLot;
+  const lot = capped ? maxLot : riskLot;
   $("l-lot").textContent = lot.toFixed(2);
   $("l-real").textContent = money(lot * OZ * sl);
   $("l-move").textContent = money(lot * OZ);
   const n = $("l-note");
+  showMargin("l", lot, price, lev, maxLot, !lev ? "укажите плечо" : "нет цены золота");
+  if (capped && lot < 0.01) {
+    $("l-lot").textContent = "0.00"; $("l-real").textContent = "—"; $("l-move").textContent = "—";
+    n.textContent = `⚠️ Баланса не хватает даже на 0.01 лота при плече 1:${Math.round(lev)}: на маржу и стоп нужно от ${money(ceilMoney(0.01 * OZ * (price / lev + sl)))}. Увеличьте плечо или баланс, либо уменьшите стоп.`;
+    n.className = "note warn"; hideOffer("l"); share.lot = null; return;
+  }
   if (lot < 0.01) {
     n.textContent = `Риск ${money(riskUsd)} слишком мал для минимального лота 0.01 при стопе ${money(sl)}: нужно рисковать от ${money(0.01 * OZ * sl)}. Увеличьте риск или уменьшите стоп.`;
     n.className = "note warn"; hideOffer("l"); share.lot = null; return;
   }
-  n.textContent = "Округлено вниз до 0.01 лота, чтобы вы не рисковали больше запланированного."; n.className = "note";
-  const lev = leverage();
-  const margin = livePrice && lev ? lot * OZ * livePrice / lev : null;
-  offer("l", margin, lot * OZ * sl, bal);
+  const realL = lot * OZ * sl;
+  if (capped) {
+    n.textContent = `⚠️ Лот ограничен маржой. По риску ${fmt(pct, pct % 1 ? 2 : 0)}% вышло бы ${riskLot.toFixed(2)}, но при плече 1:${Math.round(lev)} баланса ${money(bal)} хватает максимум на ${lot.toFixed(2)} (маржа + убыток по стопу). Фактический риск: ${money(realL)} (${fmt(realL / bal * 100)}% от баланса).`;
+    n.className = "note warn";
+  } else { n.textContent = "Округлено вниз до 0.01 лота, чтобы вы не рисковали больше запланированного."; n.className = "note"; }
+  const margin = price && lev ? lot * OZ * price / lev : null;
+  offer("l", margin, realL, bal);
   share.lot = [
     "📊 XAUUSD · Размер лота", LINE,
     `💼 Баланс: ${money(bal)}`,
     `⚠️ Риск: ${fmt(pct, pct % 1 ? 2 : 0)}% (${money(riskUsd)})`,
-    `🛑 Стоп: ${money(sl)} · ${int(sl * 10)} пипсов`, LINE,
+    `🛑 Стоп: ${money(sl)} · ${int(sl * 10)} пипсов`,
+    ...(lev ? [`⚙️ Плечо: 1:${Math.round(lev)}`] : []), LINE,
     `📦 Лот: ${lot.toFixed(2)}`,
-    `💸 Риск при этом лоте: ${money(lot * OZ * sl)}`,
+    ...(capped ? [`⚠️ Ограничен маржой (по риску было бы ${riskLot.toFixed(2)})`] : []),
+    `💸 Риск при этом лоте: ${money(realL)}${capped ? ` (${fmt(realL / bal * 100)}%)` : ""}`,
     `📈 Движение на $1: ${money(lot * OZ)}`,
-    ...(margin != null ? [`🏦 Маржа (1:${int(lev)}): ${money(margin)}`] : []),
+    ...(margin != null ? [`🏦 Маржа (1:${Math.round(lev)}): ${money(margin)}`] : []),
   ].join("\n");
 }
 
@@ -443,7 +491,8 @@ function calcPos() {
   let tp = tpRaw;
   const isBuy = side === "long";
   const out = ["p-lot", "p-real", "p-move", "p-dist", "p-pct", "p-profit", "p-rr"];
-  const reset = () => { out.forEach(i => $(i).textContent = "—"); $("p-pips").textContent = ""; $("p-tp-pips").textContent = ""; $("p-note").textContent = ""; hideOffer("p"); share.pos = null; };
+  const lev = needLev("p-lev");
+  const reset = () => { out.forEach(i => $(i).textContent = "—"); $("p-pips").textContent = ""; $("p-tp-pips").textContent = ""; $("p-note").textContent = ""; clearMargin("p"); hideOffer("p"); share.pos = null; };
 
   if (!bad(entry) && !bad(sl)) {
     if (entry === sl) { setErr("p-sl", "Стоп не может совпадать с ценой входа"); return reset(); }
@@ -454,21 +503,36 @@ function calcPos() {
     if (isBuy && tp <= entry) { setErr("p-tp", "Для LONG тейк должен быть выше цены входа"); tp = NaN; }
     if (!isBuy && tp >= entry) { setErr("p-tp", "Для SHORT тейк должен быть ниже цены входа"); tp = NaN; }
   }
-  if (bad(risk) || bad(entry) || bad(sl)) return reset();
+  if (bad(risk) || bad(entry) || bad(sl) || isNaN(lev)) return reset();
 
   const dist = Math.abs(entry - sl);
-  const lot = floorLot(risk / (dist * OZ));
+  const riskLot = floorLot(risk / (dist * OZ));
+  const maxLot = lev && !bad(bal) ? maxLotFor(bal, entry, lev, dist) : null;
+  const capped = maxLot != null && riskLot >= 0.01 && riskLot > maxLot;
+  const lot = capped ? maxLot : riskLot;
   $("p-dist").textContent = money(dist);
   $("p-pips").textContent = `${int(dist * 10)} пипсов · ${int(dist * 100)} пунктов`;
   $("p-pct").textContent = bad(bal) ? "—" : fmt(risk / bal * 100) + "%";
   const n = $("p-note");
+  showMargin("p", lot, entry, lev, maxLot, "укажите плечо");
+  if (lev && bad(bal)) $("p-maxlot").nextElementSibling.textContent = "укажите баланс";
+  else $("p-maxlot").nextElementSibling.textContent = "маржа + убыток по стопу";
+  if (capped && lot < 0.01) {
+    ["p-lot", "p-real", "p-move", "p-profit", "p-rr"].forEach(i => $(i).textContent = "—"); $("p-lot").textContent = "0.00";
+    n.textContent = `⚠️ Баланса не хватает даже на 0.01 лота при плече 1:${Math.round(lev)}: на маржу и стоп нужно от ${money(ceilMoney(0.01 * OZ * (entry / lev + dist)))}. Увеличьте плечо или баланс, либо поставьте стоп ближе.`;
+    n.className = "note warn"; hideOffer("p"); share.pos = null; return;
+  }
   if (lot < 0.01) {
     ["p-lot", "p-real", "p-move", "p-profit", "p-rr"].forEach(i => $(i).textContent = "—"); $("p-lot").textContent = "0.00";
     n.textContent = `Риска ${money(risk)} не хватает на минимальный лот 0.01 при стопе ${money(dist)}: нужно от ${money(0.01 * OZ * dist)}. Увеличьте риск или поставьте стоп ближе.`;
     n.className = "note warn"; hideOffer("p"); share.pos = null; return;
   }
-  n.textContent = "Округлено вниз до 0.01 лота, чтобы вы не рисковали больше запланированного."; n.className = "note";
   const realRisk = lot * OZ * dist;
+  if (!bad(bal)) $("p-pct").textContent = fmt(realRisk / bal * 100) + "%";
+  if (capped) {
+    n.textContent = `⚠️ Лот ограничен маржой. По риску ${money(risk)} вышло бы ${riskLot.toFixed(2)}, но при плече 1:${Math.round(lev)} баланса ${money(bal)} хватает максимум на ${lot.toFixed(2)} (маржа + убыток по стопу). Фактический риск: ${money(realRisk)} (${fmt(realRisk / bal * 100)}% от баланса).`;
+    n.className = "note warn";
+  } else { n.textContent = "Округлено вниз до 0.01 лота, чтобы вы не рисковали больше запланированного."; n.className = "note"; }
   $("p-lot").textContent = lot.toFixed(2);
   $("p-real").textContent = money(realRisk);
   $("p-move").textContent = money(lot * OZ);
@@ -482,31 +546,34 @@ function calcPos() {
     tpLines = [`✅ Тейк: ${fmt(tp)} · ${int(tpDist * 10)} пипсов`];
     tpRes = [`💰 Прибыль по тейку: ${money(profit)}`, `⚖️ Риск/прибыль: 1 : ${fmt(rr)}`];
   } else { $("p-profit").textContent = "—"; $("p-rr").textContent = "—"; $("p-rr").className = "val"; $("p-tp-pips").textContent = ""; }
-  const lev = leverage(), pMargin = lev ? lot * OZ * entry / lev : null;
+  const pMargin = lev ? lot * OZ * entry / lev : null;
   offer("p", pMargin, realRisk, bad(bal) ? null : bal);
   share.pos = [
     `${isBuy ? "🟢" : "🔴"} XAUUSD · ${isBuy ? "LONG ▲ (покупка)" : "SHORT ▼ (продажа)"}`, LINE,
     `🎯 Вход: ${fmt(entry)}`,
     `🛑 Стоп: ${fmt(sl)} · ${int(dist * 10)} пипсов`,
-    ...tpLines, LINE,
+    ...tpLines,
+    ...(lev ? [`⚙️ Плечо: 1:${Math.round(lev)}`] : []), LINE,
     `📦 Лот: ${lot.toFixed(2)}`,
+    ...(capped ? [`⚠️ Ограничен маржой (по риску было бы ${riskLot.toFixed(2)})`] : []),
     `💸 Риск: ${money(realRisk)}${bad(bal) ? "" : ` (${fmt(realRisk / bal * 100)}% от баланса)`}`,
     ...tpRes,
-    ...(pMargin != null ? [`🏦 Маржа (1:${int(lev)}): ${money(pMargin)}`] : []),
+    ...(pMargin != null ? [`🏦 Маржа (1:${Math.round(lev)}): ${money(pMargin)}`] : []),
   ].join("\n");
 }
 
 /* ---------- Калькулятор: маржа ---------- */
-const levBox = $("lev-presets");
-LEV_PRESETS.forEach(l => {
+document.querySelectorAll(".lev-presets").forEach(box => LEV_PRESETS.forEach(l => {
   const b = document.createElement("button");
   b.className = "preset"; b.type = "button"; b.textContent = "1:" + l; b.dataset.v = l;
-  b.addEventListener("click", () => { $("m-lev").value = l; onInput(); haptic(); });
-  levBox.appendChild(b);
-});
+  b.addEventListener("click", () => { LEV_IDS.forEach(i => $(i).value = l); onInput(); haptic(); });
+  box.appendChild(b);
+}));
+LEV_IDS.forEach(i => $(i).addEventListener("input", () => syncLev(i)));
 function calcMargin() {
   const lot = need("m-lot"), price = need("m-price"), lev = need("m-lev", { max: 10000, maxMsg: "Слишком большое плечо" });
-  levBox.querySelectorAll(".preset").forEach(b => b.classList.toggle("active", !bad(lev) && +b.dataset.v === lev));
+  const levNow = leverage();
+  document.querySelectorAll(".lev-presets .preset").forEach(b => b.classList.toggle("active", levNow != null && +b.dataset.v === levNow));
   if (bad(lot) || bad(price) || bad(lev)) { ["m-margin", "m-notional", "m-pip", "m-move10"].forEach(i => $(i).textContent = "—"); $("m-sub").textContent = ""; hideOffer("m"); share.margin = null; return; }
   const notional = lot * OZ * price, margin = notional / lev;
   $("m-margin").textContent = money(margin);
@@ -517,7 +584,7 @@ function calcMargin() {
   offer("m", margin, 0, null);
   share.margin = [
     "📊 XAUUSD · Маржа", LINE,
-    `📦 Лот: ${fmt(lot)}`, `💲 Цена: ${fmt(price)}`, `⚙️ Плечо: 1:${int(lev)}`, LINE,
+    `📦 Лот: ${fmt(lot)}`, `💲 Цена: ${fmt(price)}`, `⚙️ Плечо: 1:${Math.round(lev)}`, LINE,
     `🏦 Маржа: ${money(margin)}`, `📈 Объём сделки: $${int(notional)}`, `🔹 1 пипс: ${money(lot * OZ * 0.10)}`,
   ].join("\n");
 }
@@ -693,11 +760,13 @@ $("m-price-now").addEventListener("click", () => { if (livePrice) { $("m-price")
 function recalc() { calcLot(); calcPos(); calcMargin(); calcPip(); updateShareButton(); }
 function onInput() { recalc(); save(); }
 FIELDS.forEach(i => $(i).addEventListener("input", onInput));
+["l-lev", "p-lev"].forEach(i => $(i).addEventListener("input", onInput));
 
 load(saved => {
   const o = saved ? apply(saved) : null;
   if (o && o.side) setSide(o.side, false);
   FIELDS.forEach(i => { const el = $(i); if (!el.value && el.dataset.def) el.value = el.dataset.def; });
+  syncLev("m-lev");
   // Вкладка: из ссылки t.me/BOT/app?startapp=pos, из #pos в адресе, иначе последняя открытая
   const start = (inTelegram && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || location.hash.slice(1);
   const tab = ["lot", "pos", "margin", "pip"].includes(start) ? start : (o && o.tab) || "lot";
