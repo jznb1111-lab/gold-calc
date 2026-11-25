@@ -556,8 +556,13 @@ document.querySelectorAll("[data-actions]").forEach(box => {
   a.addEventListener("click", openAccount);
   box.appendChild(a);
 });
+// Открываем регистрацию во внешнем браузере телефона (Safari / Chrome), а не во встроенном браузере Telegram:
+// во встроенном браузере сайт брокера отправляет человека в App Store / Google Play.
 function openAccount() {
-  if (inTelegram) tg.openLink(REF_LINK); else window.open(REF_LINK, "_blank");
+  if (!inTelegram) { window.open(REF_LINK, "_blank"); return; }
+  const browser = tg.platform === "ios" ? "safari" : "chrome";
+  try { tg.openLink(REF_LINK, { try_browser: browser, try_instant_view: false }); }
+  catch (e) { tg.openLink(REF_LINK); }
 }
 function openChannel() {
   if (inTelegram) tg.openTelegramLink(CHANNEL_LINK); else window.open(CHANNEL_LINK, "_blank");

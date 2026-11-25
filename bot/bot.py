@@ -189,7 +189,8 @@ async def on_start(message: Message, command: CommandObject) -> None:
 @dp.message(Command("account"))
 async def on_account(message: Message) -> None:
     await message.answer(
-        "💼 Откройте счёт по ссылке — это займёт несколько минут:",
+        "💼 Откройте счёт по ссылке — это займёт несколько минут:\n"
+        f"{REF_LINK}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Открыть счёт", url=REF_LINK)]]),
     )
 
