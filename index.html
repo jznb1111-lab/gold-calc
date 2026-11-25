@@ -46,9 +46,11 @@ input.bad{border-color:var(--red)}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.45}
 .hint b{color:var(--gold);font-weight:600}
-.dir{display:inline-block;font-size:12px;font-weight:700;border-radius:6px;padding:3px 8px;margin-top:12px}
-.dir.buy{background:rgba(52,211,153,.12);color:var(--green)}
-.dir.sell{background:rgba(248,113,113,.12);color:var(--red)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:4px;margin-top:14px}
+.seg button{font:inherit;font-size:14px;font-weight:700;border:0;border-radius:9px;padding:11px 6px;cursor:pointer;background:none;color:var(--muted)}
+.seg button small{display:block;font-size:11px;font-weight:500;opacity:.85;margin-top:2px}
+.seg button.long.active{background:rgba(52,211,153,.16);color:var(--green);box-shadow:inset 0 0 0 1px rgba(52,211,153,.5)}
+.seg button.short.active{background:rgba(248,113,113,.16);color:var(--red);box-shadow:inset 0 0 0 1px rgba(248,113,113,.5)}
 .result{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:18px 12px;margin-top:20px;text-align:center}
 .result .cap{color:var(--muted);font-size:13px}
 .big{color:var(--gold);font-size:34px;font-weight:800;margin:4px 0 2px;letter-spacing:.5px}
@@ -149,7 +151,7 @@ td.oz{color:var(--muted)}
       <!-- ================= POSITION SIZE ================= -->
       <section class="view" id="view-pos">
         <h2>Размер позиции по сумме риска</h2>
-        <p class="desc">Укажите, сколько долларов готовы потерять, и цены входа и стопа. Направление сделки определится само. Тейк-профит можно не указывать.</p>
+        <p class="desc">Выберите направление сделки (LONG или SHORT), укажите, сколько долларов готовы потерять, и цены входа и стопа. Тейк-профит можно не указывать.</p>
 
         <div class="lbl"><label for="p-bal">Баланс счёта (USD)</label></div>
         <input id="p-bal" inputmode="decimal" autocomplete="off" data-k="money" data-def="1000">
@@ -159,6 +161,10 @@ td.oz{color:var(--muted)}
         <input id="p-risk" inputmode="decimal" autocomplete="off" data-k="money" data-def="10">
         <div class="echo" id="p-risk-echo"></div><div class="err" id="p-risk-err"></div>
 
+        <div class="seg" id="p-side" role="group" aria-label="Направление сделки">
+          <button type="button" class="long active" data-side="long">▲ LONG<small>покупка</small></button>
+          <button type="button" class="short" data-side="short">▼ SHORT<small>продажа</small></button>
+        </div>
         <div class="row">
           <div><div class="lbl"><label for="p-entry">Цена входа</label><button class="mini" id="p-entry-now" type="button">↻ текущая</button></div>
             <input id="p-entry" inputmode="decimal" autocomplete="off" data-k="money"><div class="err" id="p-entry-err"></div></div>
@@ -168,7 +174,6 @@ td.oz{color:var(--muted)}
         <div class="lbl"><label for="p-tp">Цена Take Profit <span class="opt">(необязательно)</span></label></div>
         <input id="p-tp" inputmode="decimal" autocomplete="off" data-k="money">
         <div class="err" id="p-tp-err"></div>
-        <span class="dir hidden" id="p-dir"></span>
 
         <div class="result">
           <div class="cap">Размер позиции</div>
@@ -398,6 +403,24 @@ function calcLot() {
 }
 
 /* ---------- Калькулятор: размер позиции ---------- */
+let side = "long";
+function setSide(v, user) {
+  if (v !== "long" && v !== "short") return;
+  const changed = v !== side;
+  side = v;
+  document.querySelectorAll("#p-side button").forEach(b => b.classList.toggle("active", b.dataset.side === v));
+  if (user && changed) {
+    // Зеркалим стоп и тейк относительно входа, если они оказались «не с той стороны»
+    const e = read("p-entry").v;
+    if (e > 0) [["p-sl", v === "long" ? -1 : 1], ["p-tp", v === "long" ? 1 : -1]].forEach(([id, sign]) => {
+      const x = read(id).v;
+      if (x > 0 && Math.sign(x - e) === -sign) { const m = 2 * e - x; if (m > 0) $(id).value = m.toFixed(2); }
+    });
+    haptic(); onInput();
+  }
+}
+document.querySelectorAll("#p-side button").forEach(b => b.addEventListener("click", () => setSide(b.dataset.side, true)));
+
 function calcPos() {
   echo("p-bal"); echo("p-risk");
   const bal = need("p-bal", { optional: true });
@@ -405,20 +428,18 @@ function calcPos() {
   if (!bad(risk) && !bad(bal) && risk > bal) { setErr("p-risk", "Риск больше баланса"); risk = NaN; }
   const entry = need("p-entry"), sl = need("p-sl"), tpRaw = need("p-tp", { optional: true });
   let tp = tpRaw;
-  const dirEl = $("p-dir");
+  const isBuy = side === "long";
   const out = ["p-lot", "p-real", "p-move", "p-dist", "p-pct", "p-profit", "p-rr"];
   const reset = () => { out.forEach(i => $(i).textContent = "—"); $("p-pips").textContent = ""; $("p-tp-pips").textContent = ""; $("p-note").textContent = ""; hideOffer("p"); share.pos = null; };
 
-  if (!bad(entry) && !bad(sl) && entry === sl) { setErr("p-sl", "Стоп не может совпадать с ценой входа"); dirEl.classList.add("hidden"); return reset(); }
-  const isBuy = !bad(entry) && !bad(sl) ? sl < entry : null;
-  if (isBuy === null) dirEl.classList.add("hidden");
-  else {
-    dirEl.className = "dir " + (isBuy ? "buy" : "sell");
-    dirEl.textContent = isBuy ? "▲ ПОКУПКА (стоп ниже входа)" : "▼ ПРОДАЖА (стоп выше входа)";
+  if (!bad(entry) && !bad(sl)) {
+    if (entry === sl) { setErr("p-sl", "Стоп не может совпадать с ценой входа"); return reset(); }
+    if (isBuy && sl > entry) { setErr("p-sl", "Для LONG стоп должен быть ниже цены входа. Возможно, вам нужен SHORT?"); return reset(); }
+    if (!isBuy && sl < entry) { setErr("p-sl", "Для SHORT стоп должен быть выше цены входа. Возможно, вам нужен LONG?"); return reset(); }
   }
-  if (isBuy !== null && !bad(tp) && tp !== null) {
-    if (isBuy && tp <= entry) { setErr("p-tp", "Для покупки тейк должен быть выше цены входа"); tp = NaN; }
-    if (!isBuy && tp >= entry) { setErr("p-tp", "Для продажи тейк должен быть ниже цены входа"); tp = NaN; }
+  if (!bad(entry) && !bad(tp) && tp !== null) {
+    if (isBuy && tp <= entry) { setErr("p-tp", "Для LONG тейк должен быть выше цены входа"); tp = NaN; }
+    if (!isBuy && tp >= entry) { setErr("p-tp", "Для SHORT тейк должен быть ниже цены входа"); tp = NaN; }
   }
   if (bad(risk) || bad(entry) || bad(sl)) return reset();
 
@@ -449,7 +470,7 @@ function calcPos() {
   } else { $("p-profit").textContent = "—"; $("p-rr").textContent = "—"; $("p-rr").className = "val"; $("p-tp-pips").textContent = ""; }
   const lev = leverage();
   offer("p", lev ? lot * OZ * entry / lev : null, realRisk, bad(bal) ? null : bal);
-  share.pos = `XAUUSD ${isBuy ? "ПОКУПКА" : "ПРОДАЖА"}\nВход ${fmt(entry)}, стоп ${fmt(sl)} (${int(dist * 10)} пипсов)${tpLine}\n➡️ Лот: ${lot.toFixed(2)} · риск ${money(realRisk)}`;
+  share.pos = `XAUUSD ${isBuy ? "LONG ▲" : "SHORT ▼"}\nВход ${fmt(entry)}, стоп ${fmt(sl)} (${int(dist * 10)} пипсов)${tpLine}\n➡️ Лот: ${lot.toFixed(2)} · риск ${money(realRisk)}`;
 }
 
 /* ---------- Калькулятор: маржа ---------- */
@@ -549,7 +570,7 @@ document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () =>
 
 /* ---------- Сохранение введённых значений ---------- */
 const STORE_KEY = "goldcalc_v1";
-function collect() { const o = { tab: activeTab }; FIELDS.forEach(i => o[i] = $(i).value); return JSON.stringify(o); }
+function collect() { const o = { tab: activeTab, side }; FIELDS.forEach(i => o[i] = $(i).value); return JSON.stringify(o); }
 let saveTimer;
 function save() {
   clearTimeout(saveTimer);
@@ -595,7 +616,7 @@ async function fetchPrice() {
     livePrice = Math.round(p * 100) / 100; priceTime = new Date();
     setPriceChip("live");
     // Подставляем в пустые поля цены
-    if (!$("p-entry").value) { $("p-entry").value = livePrice.toFixed(2); if (!$("p-sl").value) $("p-sl").value = (livePrice - 5).toFixed(2); }
+    if (!$("p-entry").value) { $("p-entry").value = livePrice.toFixed(2); if (!$("p-sl").value) $("p-sl").value = (livePrice + (side === "long" ? -5 : 5)).toFixed(2); }
     if (!$("m-price").value || !mPriceTouched) $("m-price").value = livePrice.toFixed(2);
     recalc();
   } catch (e) { setPriceChip("error"); }
@@ -613,6 +634,7 @@ FIELDS.forEach(i => $(i).addEventListener("input", onInput));
 
 load(saved => {
   const o = saved ? apply(saved) : null;
+  if (o && o.side) setSide(o.side, false);
   FIELDS.forEach(i => { const el = $(i); if (!el.value && el.dataset.def) el.value = el.dataset.def; });
   // Вкладка: из ссылки t.me/BOT/app?startapp=pos, из #pos в адресе, иначе последняя открытая
   const start = (inTelegram && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || location.hash.slice(1);
