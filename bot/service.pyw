@@ -7,7 +7,6 @@
 """
 import asyncio
 import logging
-import socket
 import sys
 import time
 from logging.handlers import RotatingFileHandler
@@ -15,7 +14,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 LOG_FILE = HERE / "bot.log"
-LOCK_PORT = 47613  # локальный порт-«замок» для защиты от второй копии
+LOCK_NAME = "GoldCalcBot_single_instance"
 
 
 def setup_logging() -> None:
@@ -36,12 +35,26 @@ def setup_logging() -> None:
     sys.stderr = _ToLog(logging.ERROR)
 
 
-def single_instance() -> socket.socket | None:
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+def single_instance():
+    """Защита от второй копии. Windows: именованный мьютекс; Linux/Mac: блокировка файла.
+    Возвращает объект-замок (держать до выхода) или None, если копия уже работает."""
+    if sys.platform == "win32":
+        import ctypes
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.CreateMutexW.restype = ctypes.c_void_p
+        handle = kernel32.CreateMutexW(None, False, "Local\\" + LOCK_NAME)
+        if not handle:
+            logging.getLogger("service").warning("Не удалось создать мьютекс (%s) — запускаемся без проверки.", ctypes.get_last_error())
+            return True
+        if ctypes.get_last_error() == 183:  # ERROR_ALREADY_EXISTS
+            kernel32.CloseHandle(ctypes.c_void_p(handle))
+            return None
+        return handle
+    import fcntl
+    f = open(HERE / ".service.lock", "w")
     try:
-        s.bind(("127.0.0.1", LOCK_PORT))
-        s.listen(1)
-        return s
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return f
     except OSError:
         return None
 
