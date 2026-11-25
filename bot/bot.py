@@ -34,7 +34,6 @@ from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
-    LinkPreviewOptions,
     MenuButtonWebApp,
     Message,
     TelegramObject,
@@ -157,7 +156,7 @@ def stats_text() -> str:
 def main_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🧮 Открыть калькулятор", web_app=WebAppInfo(url=WEBAPP_URL))],
-        [InlineKeyboardButton(text="💼 Открыть счёт", callback_data="account")],
+        [InlineKeyboardButton(text="💼 Открыть счёт", url=REF_LINK)],
         [InlineKeyboardButton(text="📢 Наш Telegram-канал", url=CHANNEL_LINK)],
     ])
 
@@ -182,33 +181,18 @@ async def remember_user(handler, event: TelegramObject, data: dict):
 async def on_start(message: Message, command: CommandObject) -> None:
     # Метка источника: t.me/БОТ?start=channel → source = "channel" (записывается один раз)
     src = re.sub(r"[^\w-]", "", (command.args or ""))[:64]
-    if src == "account":  # кнопка «Открыть счёт» в Mini App
-        await send_account(message)
-        return
     if src:
         set_source_if_new(message.from_user.id, src)
     await message.answer(WELCOME, reply_markup=main_keyboard())
 
 
-# Реф-ссылку отправляем только обычным текстом: если открыть её через URL-кнопку или из Mini App,
-# сайт брокера на телефоне перекидывает в App Store / Google Play. Ссылка текстом открывает веб-регистрацию.
-async def send_account(message: Message) -> None:
-    await message.answer(
-        "💼 Откройте счёт — нажмите на ссылку ниже, регистрация займёт несколько минут:\n\n"
-        f"{REF_LINK}",
-        link_preview_options=LinkPreviewOptions(is_disabled=True),
-    )
-
-
 @dp.message(Command("account"))
 async def on_account(message: Message) -> None:
-    await send_account(message)
-
-
-@dp.callback_query(F.data == "account")
-async def on_account_button(cb: CallbackQuery) -> None:
-    await cb.answer()
-    await send_account(cb.message)
+    await message.answer(
+        "💼 Откройте счёт по ссылке — это займёт несколько минут:\n"
+        f"{REF_LINK}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Открыть счёт", url=REF_LINK)]]),
+    )
 
 
 @dp.message(Command("channel"))
